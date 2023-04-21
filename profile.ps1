@@ -53,9 +53,19 @@ function Prompt {
         }
     } while ($null -eq $csproj)
     if ($null -ne $csproj) {
-        $csproj = (Select-Xml -Path $csproj -XPath '/Project/PropertyGroup/TargetFramework').Node.InnerText
+        $csprojPath = $csproj
+        $csproj = (Select-Xml -Path $csprojPath -XPath '/Project/PropertyGroup/TargetFramework').Node.InnerText
         if ($null -ne $csproj) {
             $csproj = '.' + $csproj
+        }
+        else {
+            # old projects
+            $csproj = (Select-Xml -Path $csprojPath `
+             -XPath '/vs:Project/vs:PropertyGroup[1]/vs:TargetFrameworkVersion' `
+             -Namespace @{vs='http://schemas.microsoft.com/developer/msbuild/2003'}).Node.InnerText
+            if ($null -ne $csproj) {
+                $csproj = $csproj.Replace('v', '.net')
+            }
         }
     }
 
