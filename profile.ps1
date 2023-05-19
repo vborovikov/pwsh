@@ -38,7 +38,9 @@ function Prompt {
     $titlePath = $dir
     $title = Split-Path $titlePath -Leaf
     while ($title -eq 'net8.0' -or $title -eq 'net7.0' -or $title -eq 'net6.0' -or
-        $title -eq 'Debug' -or $title -eq 'Release' -or $title -eq 'bin' -or $title -eq 'obj') {
+        $title -eq 'Debug' -or $title -eq 'Release' -or
+        $title -eq 'bin' -or $title -eq 'obj' -or
+        $title -eq 'src' -or $title -eq 'test') {
         # skip this folder name    
         $titlePath = Split-Path $titlePath -Parent
         if ($titlePath.Length -eq 0) {
