@@ -53,13 +53,17 @@ function Prompt {
     }
     if ($title.Length -gt 0) {
         # set window title
-        $host.UI.RawUI.WindowTitle = $title + ' - PS'
+        $host.UI.RawUI.WindowTitle = $title + ' - PowerShell'
     }
 
-    # git branch
-    $git = (git branch --show-current 2>&1)
+    # git status
+    $git = (git status --short 2>&1)
     if ($git -is [Management.Automation.ErrorRecord]) {
         $git = $null
+    }
+    else {
+        $git = New-Object -TypeName GitStatus -ArgumentList (, $git)
+        $git = $git.ToText()
     }
 
     # dotnet
@@ -104,9 +108,50 @@ function Prompt {
     # current path
     '|' + "`e[37m$path`e[0m" +
     # git status
-    $(if ($null -ne $git) { '|' + "`e[92m$git`e[0m" } else { '' }) +
+    $(if ($null -ne $git) { '|' + $git } else { '' }) +
     # dotnet version
     $(if ($null -ne $csproj) { '|' + "`e[95m$csproj`e[0m" } else { '' }) +
     # prompt level and error state
     "`r`nPS $(if ($err -ne $true) {"`e[91m$promptLevel`e[0m"} else {$promptLevel}) "
+}
+
+# Git status parser
+class GitStatus {
+    [string]$Branch
+    [bool]$HasChanges 
+    [int]$Modified
+    [int]$Added
+    [int]$Deleted
+    [int]$Untracked
+
+    GitStatus([string[]]$status) {
+        $this.Branch = (git branch --show-current 2>&1)
+        $this.HasChanges = $null -ne $status
+        if ($this.HasChanges) {
+            $status | ForEach-Object {
+                if (($_[1] -eq 'M') -or ($_[1] -eq 'R')) {
+                    $this.Modified += 1
+                }
+                elseif ($_[1] -eq 'A') {
+                    $this.Added += 1
+                }
+                elseif ($_[1] -eq 'D') {
+                    $this.Deleted += 1
+                }
+                elseif ($_[1] -eq '?') {
+                    $this.Untracked += 1
+                }
+            }
+        }
+    }
+
+    [string]ToText() {
+        return "$(if ($this.HasChanges) {"`e[91m$($this.Branch)`e[0m"} else {"`e[92m$($this.Branch)`e[0m"})" + 
+        '[' + 
+        "~$(if ($this.Modified -gt 0) {"`e[91m$($this.Modified)`e[0m"} else {$this.Modified})" + 
+        "+$(if ($this.Added -gt 0) {"`e[91m$($this.Added)`e[0m"} else {$this.Added})" +
+        ".$(if ($this.Untracked -gt 0) {"`e[91m$($this.Untracked)`e[0m"} else {$this.Untracked})" +
+        "-$(if ($this.Deleted -gt 0) {"`e[91m$($this.Deleted)`e[0m"} else {$this.Deleted})" +
+        ']'
+    }
 }
