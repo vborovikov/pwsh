@@ -146,12 +146,18 @@ class GitStatus {
     }
 
     [string]ToText() {
-        return "$(if ($this.HasChanges) {"`e[91m$($this.Branch)`e[0m"} else {"`e[92m$($this.Branch)`e[0m"})" + 
-        '[' + 
-        "~$(if ($this.Modified -gt 0) {"`e[91m$($this.Modified)`e[0m"} else {$this.Modified})" + 
-        "+$(if ($this.Added -gt 0) {"`e[91m$($this.Added)`e[0m"} else {$this.Added})" +
-        ".$(if ($this.Untracked -gt 0) {"`e[91m$($this.Untracked)`e[0m"} else {$this.Untracked})" +
-        "-$(if ($this.Deleted -gt 0) {"`e[91m$($this.Deleted)`e[0m"} else {$this.Deleted})" +
-        ']'
+        if ($this.HasChanges) {
+            return `
+                "`e[91m$($this.Branch)`e[0m" + 
+                "`e[2m[`e[22m" + 
+                "`e[2m~`e[22m$(if ($this.Modified -gt 0) {"`e[91m$($this.Modified)`e[0m"} else {"`e[2m0`e[22m"})" + 
+                "`e[2m+`e[22m$(if ($this.Added -gt 0) {"`e[91m$($this.Added)`e[0m"} else {"`e[2m0`e[22m"})" +
+                "`e[2m:`e[22m$(if ($this.Untracked -gt 0) {"`e[91m$($this.Untracked)`e[0m"} else {"`e[2m0`e[22m"})" +
+                "`e[2m-`e[22m$(if ($this.Deleted -gt 0) {"`e[91m$($this.Deleted)`e[0m"} else {"`e[2m0`e[22m"})" +
+                "`e[2m]`e[22m"
+                
+        }
+
+        return "`e[92m$($this.Branch)`e[0m"
     }
 }
