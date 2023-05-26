@@ -6,9 +6,6 @@ Import-Module Terminal-Icons
 Set-PSReadLineOption -PredictionSource HistoryAndPlugin -PredictionViewStyle ListView -ShowToolTips
 Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
 
-# MyTasks
-Set-MyTaskHome -Path "$Env:OneDriveConsumer\Tasks"
-
 # Aliases
 Set-Alias touch New-Item
 Set-Alias file Find-File
