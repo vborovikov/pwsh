@@ -54,7 +54,7 @@ function Prompt {
     }
 
     # git status
-    $git = (git status --short 2>&1)
+    $git = (git status --porcelain 2>&1)
     if ($git -is [Management.Automation.ErrorRecord]) {
         $git = $null
     }
