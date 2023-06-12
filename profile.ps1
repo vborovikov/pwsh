@@ -129,7 +129,7 @@ class GitStatus {
                 if (($_[1] -eq 'M') -or ($_[1] -eq 'R')) {
                     $this.Modified += 1
                 }
-                elseif ($_[1] -eq 'A') {
+                elseif (($_[0] -eq 'A') -or ($_[1] -eq 'A')) {
                     $this.Added += 1
                 }
                 elseif ($_[1] -eq 'D') {
