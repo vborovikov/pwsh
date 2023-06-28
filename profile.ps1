@@ -17,6 +17,8 @@ Set-Alias edit Open-File
 # Replaces $Home part of the current path with '~'
 # time | path | git | .net
 
+New-Variable SkipTitleNames @('net8.0', 'net7.0', 'net6.0', 'Debug', 'Release', 'bin', 'obj', 'src', 'test', 'build') -Option Constant
+
 function Prompt {
     # error
     $err = $?
@@ -34,10 +36,7 @@ function Prompt {
     # title
     $titlePath = $dir
     $title = Split-Path $titlePath -Leaf
-    while ($title -eq 'net8.0' -or $title -eq 'net7.0' -or $title -eq 'net6.0' -or
-        $title -eq 'Debug' -or $title -eq 'Release' -or
-        $title -eq 'bin' -or $title -eq 'obj' -or
-        $title -eq 'src' -or $title -eq 'test') {
+    while ($SkipTitleNames -contains $title) {
         # skip this folder name    
         $titlePath = Split-Path $titlePath -Parent
         if ($titlePath.Length -eq 0) {
@@ -54,14 +53,7 @@ function Prompt {
     }
 
     # git status
-    $git = (git status --porcelain 2>&1)
-    if ($git -is [Management.Automation.ErrorRecord]) {
-        $git = $null
-    }
-    else {
-        $git = New-Object -TypeName GitStatus -ArgumentList (, $git)
-        $git = $git.ToText()
-    }
+    $git = New-Object -TypeName GitStatus
 
     # dotnet
     $csprojPath = $dir
@@ -105,7 +97,7 @@ function Prompt {
     # current path
     '|' + "`e[37m$path`e[0m" +
     # git status
-    $(if ($null -ne $git) { '|' + $git } else { '' }) +
+    $(if ($git.HasStatus) { '|' + $git.ToText() } else { '' }) +
     # dotnet version
     $(if ($null -ne $csproj) { '|' + "`e[95m$csproj`e[0m" } else { '' }) +
     # prompt level and error state
@@ -114,6 +106,7 @@ function Prompt {
 
 # Git status parser
 class GitStatus {
+    [bool]$HasStatus
     [string]$Branch
     [bool]$HasChanges 
     [int]$Modified
@@ -121,28 +114,36 @@ class GitStatus {
     [int]$Deleted
     [int]$Untracked
 
-    GitStatus([string[]]$status) {
-        $this.Branch = (git branch --show-current 2>&1)
-        $this.HasChanges = $null -ne $status
-        if ($this.HasChanges) {
-            $status | ForEach-Object {
-                if (($_[1] -eq 'M') -or ($_[1] -eq 'R')) {
-                    $this.Modified += 1
-                }
-                elseif (($_[0] -eq 'A') -or ($_[1] -eq 'A')) {
-                    $this.Added += 1
-                }
-                elseif ($_[1] -eq 'D') {
-                    $this.Deleted += 1
-                }
-                elseif ($_[1] -eq '?') {
-                    $this.Untracked += 1
+    GitStatus() {
+        $status = (git status --porcelain 2>&1)
+        $this.HasStatus = $status -isnot [Management.Automation.ErrorRecord]
+        if ($this.HasStatus) {
+            $this.Branch = (git branch --show-current 2>&1)
+            $this.HasChanges = $null -ne $status
+            if ($this.HasChanges) {
+                $status | ForEach-Object {
+                    if (($_[1] -eq 'M') -or ($_[1] -eq 'R')) {
+                        $this.Modified += 1
+                    }
+                    elseif (($_[0] -eq 'A') -or ($_[1] -eq 'A')) {
+                        $this.Added += 1
+                    }
+                    elseif ($_[1] -eq 'D') {
+                        $this.Deleted += 1
+                    }
+                    elseif ($_[1] -eq '?') {
+                        $this.Untracked += 1
+                    }
                 }
             }
         }
     }
 
     [string]ToText() {
+        if (-not $this.HasStatus) {
+            return $null
+        }
+
         if ($this.HasChanges) {
             return `
                 "`e[91m$($this.Branch)`e[0m" + 
@@ -152,7 +153,6 @@ class GitStatus {
                 "`e[2m:`e[22m$(if ($this.Untracked -gt 0) {"`e[91m$($this.Untracked)`e[0m"} else {"`e[2m0`e[22m"})" +
                 "`e[2m-`e[22m$(if ($this.Deleted -gt 0) {"`e[91m$($this.Deleted)`e[0m"} else {"`e[2m0`e[22m"})" +
                 "`e[2m]`e[22m"
-                
         }
 
         return "`e[92m$($this.Branch)`e[0m"
