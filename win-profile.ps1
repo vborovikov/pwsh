@@ -16,6 +16,7 @@ Set-Alias edit Open-File
 # Replaces $Home part of the current path with '~'
 # time | path | git | .net
 
+New-Variable PSWindowTitle $Host.UI.RawUI.WindowTitle -Option Constant
 New-Variable SkipTitleNames @('net8.0', 'net7.0', 'net6.0', 'Debug', 'Release', 'bin', 'obj', 'src', 'test', 'build') -Option Constant
 
 function Prompt {
@@ -48,7 +49,7 @@ function Prompt {
     }
     if ($title.Length -gt 0) {
         # set window title
-        $host.UI.RawUI.WindowTitle = $title + ' - WinPowerShell'
+        $host.UI.RawUI.WindowTitle = $title + " - $PSWindowTitle"
     }
 
     # git status
