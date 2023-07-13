@@ -18,7 +18,7 @@ Set-Alias edit Open-File
 # time | path | git | .net
 
 New-Variable PSWindowTitle $Host.UI.RawUI.WindowTitle -Option Constant
-New-Variable SkipTitleNames @('net8.0', 'net7.0', 'net6.0', 'Debug', 'Release', 'bin', 'obj', 'src', 'test', 'build') -Option Constant
+New-Variable SkipTitleNames @('net8.0', 'net7.0', 'net6.0', 'Debug', 'Release', 'bin', 'obj', 'src', 'test', 'build', 'code', 'game') -Option Constant
 
 function Prompt {
     # error
