@@ -20,6 +20,8 @@ New-Variable PSWindowTitle $Host.UI.RawUI.WindowTitle -Option Constant
 New-Variable SkipTitleNames @('net8.0', 'net7.0', 'net6.0', 'Debug', 'Release', 'bin', 'obj', 'src', 'test', 'build', 'code', 'game') -Option Constant
 
 function Prompt {
+    $e = [char]27
+
     # error
     $err = $?
 
@@ -30,7 +32,7 @@ function Prompt {
     $dir = (Convert-Path .)
     $path = $dir
     if ($path.Contains($Home)) {
-        $path = $path.Replace($Home, '~')
+        $path = $path.Replace($Home, '~').Replace('\', "$e[2m\$e[22m")
     }
 
     # title
@@ -72,24 +74,31 @@ function Prompt {
     } while ($null -eq $csproj)
     if ($null -ne $csproj) {
         $csprojPath = $csproj
+        # single target framework
         $csproj = (Select-Xml -Path $csprojPath -XPath '/Project/PropertyGroup/TargetFramework').Node.InnerText
         if ($null -ne $csproj) {
             $csproj = '.' + $csproj
         }
         else {
-            # old projects
-            $csproj = (Select-Xml -Path $csprojPath `
-                    -XPath '/vs:Project/vs:PropertyGroup[1]/vs:TargetFrameworkVersion' `
-                    -Namespace @{vs = 'http://schemas.microsoft.com/developer/msbuild/2003' }).Node.InnerText
+            # multiple target frameworks
+            $csproj = (Select-Xml -Path $csprojPath -XPath '/Project/PropertyGroup/TargetFrameworks').Node.InnerText
             if ($null -ne $csproj) {
-                $csproj = $csproj.Replace('v', '.net')
+                $csproj = '.' + $csproj.Replace(';', "$e[2m;$e[22m.")
+            }
+            else {
+                # old projects
+                $csproj = (Select-Xml -Path $csprojPath `
+                        -XPath '/vs:Project/vs:PropertyGroup[1]/vs:TargetFrameworkVersion' `
+                        -Namespace @{vs = 'http://schemas.microsoft.com/developer/msbuild/2003' }).Node.InnerText
+                if ($null -ne $csproj) {
+                    $csproj = $csproj.Replace('v', '.net')
+                }
             }
         }
     }
 
     # prompt
     $promptLevel = if ($NestedPromptLevel -ge 1) { '>>' } else { '>' }
-    $e = [char]27
 
     $(if (Test-Path variable:/PSDebugContext) { '[DBG]: ' } else { '' }) +
     'PS ' +
@@ -123,16 +132,16 @@ class GitStatus {
             $this.HasChanges = $null -ne $status
             if ($this.HasChanges) {
                 $status | ForEach-Object {
-                    if (($_[1] -eq 'M') -or ($_[1] -eq 'R')) {
+                    if (($_[0] -eq 'M') -or ($_[1] -eq 'M') -or ($_[0] -eq 'R') -or ($_[1] -eq 'R')) {
                         $this.Modified += 1
                     }
                     elseif (($_[0] -eq 'A') -or ($_[1] -eq 'A')) {
                         $this.Added += 1
                     }
-                    elseif ($_[1] -eq 'D') {
+                    elseif (($_[0] -eq 'D') -or ($_[1] -eq 'D')) {
                         $this.Deleted += 1
                     }
-                    elseif ($_[1] -eq '?') {
+                    elseif (($_[0] -eq '?') -or ($_[1] -eq '?')) {
                         $this.Untracked += 1
                     }
                 }
@@ -148,13 +157,13 @@ class GitStatus {
 
         if ($this.HasChanges) {
             return `
-                "$e[91m$($this.Branch)$e[0m" + 
+                "$e[91m$($this.Branch)" + 
                 "$e[2m[$e[22m" + 
-                "$e[2m~$e[22m$(if ($this.Modified -gt 0) {"$e[91m$($this.Modified)$e[0m"} else {"$e[2m0$e[22m"})" + 
-                "$e[2m+$e[22m$(if ($this.Added -gt 0) {"$e[91m$($this.Added)$e[0m"} else {"$e[2m0$e[22m"})" +
-                "$e[2m:$e[22m$(if ($this.Untracked -gt 0) {"$e[91m$($this.Untracked)$e[0m"} else {"$e[2m0$e[22m"})" +
-                "$e[2m-$e[22m$(if ($this.Deleted -gt 0) {"$e[91m$($this.Deleted)$e[0m"} else {"$e[2m0$e[22m"})" +
-                "$e[2m]$e[22m"
+                "$e[2m~$e[22m$(if ($this.Modified -gt 0) {$this.Modified} else {"$e[2m0$e[22m"})" + 
+                "$e[2m+$e[22m$(if ($this.Added -gt 0) {$this.Added} else {"$e[2m0$e[22m"})" +
+                "$e[2m:$e[22m$(if ($this.Untracked -gt 0) {$this.Untracked} else {"$e[2m0$e[22m"})" +
+                "$e[2m-$e[22m$(if ($this.Deleted -gt 0) {$this.Deleted} else {"$e[2m0$e[22m"})" +
+                "$e[2m]$e[22m$e[0m"
         }
 
         return "$e[92m$($this.Branch)$e[0m"

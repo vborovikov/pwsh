@@ -31,7 +31,7 @@ function Prompt {
     $dir = (Convert-Path .)
     $path = $dir
     if ($path.Contains($Home)) {
-        $path = $path.Replace($Home, '~')
+        $path = $path.Replace($Home, '~').Replace('\', "`e[2m\`e[22m")
     }
 
     # title
@@ -82,7 +82,7 @@ function Prompt {
             # multiple target frameworks
             $csproj = (Select-Xml -Path $csprojPath -XPath '/Project/PropertyGroup/TargetFrameworks').Node.InnerText
             if ($null -ne $csproj) {
-                $csproj = '.' + $csproj.Replace(';', "`e[2m/`e[22m.")
+                $csproj = '.' + $csproj.Replace(';', "`e[2m;`e[22m.")
             }
             else {
                 # old projects
@@ -155,13 +155,13 @@ class GitStatus {
 
         if ($this.HasChanges) {
             return `
-                "`e[91m$($this.Branch)`e[0m" + 
+                "`e[91m$($this.Branch)" + 
                 "`e[2m[`e[22m" + 
-                "`e[2m~`e[22m$(if ($this.Modified -gt 0) {"`e[91m$($this.Modified)`e[0m"} else {"`e[2m0`e[22m"})" + 
-                "`e[2m+`e[22m$(if ($this.Added -gt 0) {"`e[91m$($this.Added)`e[0m"} else {"`e[2m0`e[22m"})" +
-                "`e[2m:`e[22m$(if ($this.Untracked -gt 0) {"`e[91m$($this.Untracked)`e[0m"} else {"`e[2m0`e[22m"})" +
-                "`e[2m-`e[22m$(if ($this.Deleted -gt 0) {"`e[91m$($this.Deleted)`e[0m"} else {"`e[2m0`e[22m"})" +
-                "`e[2m]`e[22m"
+                "`e[2m~`e[22m$(if ($this.Modified -gt 0) {$this.Modified} else {"`e[2m0`e[22m"})" + 
+                "`e[2m+`e[22m$(if ($this.Added -gt 0) {$this.Added} else {"`e[2m0`e[22m"})" +
+                "`e[2m:`e[22m$(if ($this.Untracked -gt 0) {$this.Untracked} else {"`e[2m0`e[22m"})" +
+                "`e[2m-`e[22m$(if ($this.Deleted -gt 0) {$this.Deleted} else {"`e[2m0`e[22m"})" +
+                "`e[2m]`e[22m`e[0m"
         }
 
         return "`e[92m$($this.Branch)`e[0m"
