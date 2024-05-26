@@ -73,17 +73,25 @@ function Prompt {
     } while ($null -eq $csproj)
     if ($null -ne $csproj) {
         $csprojPath = $csproj
+        # single target framework
         $csproj = (Select-Xml -Path $csprojPath -XPath '/Project/PropertyGroup/TargetFramework').Node.InnerText
         if ($null -ne $csproj) {
             $csproj = '.' + $csproj
         }
         else {
-            # old projects
-            $csproj = (Select-Xml -Path $csprojPath `
-                    -XPath '/vs:Project/vs:PropertyGroup[1]/vs:TargetFrameworkVersion' `
-                    -Namespace @{vs = 'http://schemas.microsoft.com/developer/msbuild/2003' }).Node.InnerText
+            # multiple target frameworks
+            $csproj = (Select-Xml -Path $csprojPath -XPath '/Project/PropertyGroup/TargetFrameworks').Node.InnerText
             if ($null -ne $csproj) {
-                $csproj = $csproj.Replace('v', '.net')
+                $csproj = '.' + $csproj.Replace(';', "`e[2m/`e[22m.")
+            }
+            else {
+                # old projects
+                $csproj = (Select-Xml -Path $csprojPath `
+                        -XPath '/vs:Project/vs:PropertyGroup[1]/vs:TargetFrameworkVersion' `
+                        -Namespace @{vs = 'http://schemas.microsoft.com/developer/msbuild/2003' }).Node.InnerText
+                if ($null -ne $csproj) {
+                    $csproj = $csproj.Replace('v', '.net')
+                }
             }
         }
     }
@@ -123,16 +131,16 @@ class GitStatus {
             $this.HasChanges = $null -ne $status
             if ($this.HasChanges) {
                 $status | ForEach-Object {
-                    if (($_[1] -eq 'M') -or ($_[1] -eq 'R')) {
+                    if (($_[0] -eq 'M') -or ($_[1] -eq 'M') -or ($_[0] -eq 'R') -or ($_[1] -eq 'R')) {
                         $this.Modified += 1
                     }
                     elseif (($_[0] -eq 'A') -or ($_[1] -eq 'A')) {
                         $this.Added += 1
                     }
-                    elseif ($_[1] -eq 'D') {
+                    elseif (($_[0] -eq 'D') -or ($_[1] -eq 'D')) {
                         $this.Deleted += 1
                     }
-                    elseif ($_[1] -eq '?') {
+                    elseif (($_[0] -eq '?') -or ($_[1] -eq '?')) {
                         $this.Untracked += 1
                     }
                 }
