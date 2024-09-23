@@ -2,6 +2,13 @@
 
 Defines a custom prompt function that replaces the `$Home` part of the current path with '~', displays the time, current path, git status, and .NET version in the current project file, and sets the window title to the current folder name. The prompt also displays a different prompt character ('>' or '>>') depending on the current nested prompt level and whether there was an error in the previous command.
 
+How it might look like:
+
+![Windows Terminal](misc/terminal.png)
+
+![Visual Studio Code](misc/vscode.png)
+
+
 ## MyTools.psm1
 
 The `Find-File` function takes a `FileName` parameter and searches the current directory and all subdirectories for files with that name. It returns an array of `System.IO.FileInfo` objects representing the matching files.
