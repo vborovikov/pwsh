@@ -8,6 +8,11 @@ How it might look like:
 
 ![Visual Studio Code](misc/vscode.png)
 
+## Installation
+
+```bash
+PS > copy .\profile.ps1 $Profile.CurrentUserAllHosts
+```
 
 ## MyTools.psm1
 
