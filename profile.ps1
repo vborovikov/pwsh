@@ -1,9 +1,16 @@
 # Modules
 Import-Module z
-Import-Module Terminal-Icons
+if ($PSVersionTable.PSVersion.Major -gt 5) {
+    Import-Module Terminal-Icons
+}
 
 # PSReadLine
-Set-PSReadLineOption -PredictionSource HistoryAndPlugin -PredictionViewStyle ListView -ShowToolTips
+if ($PSVersionTable.PSVersion.Major -gt 5) {
+    Set-PSReadLineOption -PredictionSource HistoryAndPlugin -PredictionViewStyle ListView -ShowToolTips
+}
+else {
+    Set-PSReadLineOption -PredictionSource History -PredictionViewStyle ListView -ShowToolTips
+}
 Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
 
 # Aliases
@@ -24,6 +31,8 @@ New-Variable SkipTitleNames @(
     'code', 'game') -Option Constant
 
 function Prompt {
+    $e = [char]27
+
     # error
     $err = $?
 
@@ -34,7 +43,7 @@ function Prompt {
     $dir = (Convert-Path .)
     $path = $dir
     if ($path.Contains($Home)) {
-        $path = $path.Replace($Home, '~').Replace('\', "`e[2m\`e[22m")
+        $path = $path.Replace($Home, '~').Replace('\', "$e[2m\$e[22m")
     }
 
     # title
@@ -49,7 +58,7 @@ function Prompt {
         $title = Split-Path $titlePath -Leaf
     }
     if ($title.Length -gt 15) {
-        $title = $title.Substring(0, 15) + "`u{2026}"
+        $title = $title.Substring(0, 15) + [char]0x2026
     }
     if ($title.Length -gt 0) {
         # set window title
@@ -85,7 +94,7 @@ function Prompt {
             # multiple target frameworks
             $csproj = (Select-Xml -Path $csprojPath -XPath '/Project/PropertyGroup/TargetFrameworks').Node.InnerText
             if ($null -ne $csproj) {
-                $csproj = '.' + $csproj.Replace(';', "`e[2m;`e[22m.")
+                $csproj = '.' + $csproj.Replace(';', "$e[2m;$e[22m.")
             }
             else {
                 # old projects
@@ -105,15 +114,15 @@ function Prompt {
     $(if (Test-Path variable:/PSDebugContext) { '[DBG]: ' } else { '' }) +
     'PS ' +
     # date and time
-    "`e[36m$time`e[0m" +
+    "$e[36m$time$e[0m" +
     # current path
-    '|' + "`e[37m$path`e[0m" +
+    '|' + "$e[37m$path$e[0m" +
     # git status
     $(if ($git.HasStatus) { '|' + $git.ToText() } else { '' }) +
     # dotnet version
-    $(if ($null -ne $csproj) { '|' + "`e[95m$csproj`e[0m" } else { '' }) +
+    $(if ($null -ne $csproj) { '|' + "$e[95m$csproj$e[0m" } else { '' }) +
     # prompt level and error state
-    "`r`nPS $(if ($err -ne $true) {"`e[91m$promptLevel`e[0m"} else {$promptLevel}) "
+    "`r`nPS $(if ($err -ne $true) {"$e[91m$promptLevel$e[0m"} else {$promptLevel}) "
 }
 
 # Git status parser
@@ -155,18 +164,19 @@ class GitStatus {
         if (-not $this.HasStatus) {
             return $null
         }
+        $e = [char]27
 
         if ($this.HasChanges) {
             return `
-                "`e[91m$($this.Branch)" + 
-                "`e[2m[`e[22m" + 
-                "`e[2m~`e[22m$(if ($this.Modified -gt 0) {$this.Modified} else {"`e[2m0`e[22m"})" + 
-                "`e[2m+`e[22m$(if ($this.Added -gt 0) {$this.Added} else {"`e[2m0`e[22m"})" +
-                "`e[2m:`e[22m$(if ($this.Untracked -gt 0) {$this.Untracked} else {"`e[2m0`e[22m"})" +
-                "`e[2m-`e[22m$(if ($this.Deleted -gt 0) {$this.Deleted} else {"`e[2m0`e[22m"})" +
-                "`e[2m]`e[22m`e[0m"
+                "$e[91m$($this.Branch)" + 
+                "$e[2m[$e[22m" + 
+                "$e[2m~$e[22m$(if ($this.Modified -gt 0) {$this.Modified} else {"$e[2m0$e[22m"})" + 
+                "$e[2m+$e[22m$(if ($this.Added -gt 0) {$this.Added} else {"$e[2m0$e[22m"})" +
+                "$e[2m:$e[22m$(if ($this.Untracked -gt 0) {$this.Untracked} else {"$e[2m0$e[22m"})" +
+                "$e[2m-$e[22m$(if ($this.Deleted -gt 0) {$this.Deleted} else {"$e[2m0$e[22m"})" +
+                "$e[2m]$e[22m$e[0m"
         }
 
-        return "`e[92m$($this.Branch)`e[0m"
+        return "$e[92m$($this.Branch)$e[0m"
     }
 }

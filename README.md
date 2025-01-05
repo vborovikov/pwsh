@@ -10,6 +10,8 @@ How it might look like:
 
 ## Installation
 
+The script works for PowerShell v5.1 and higher.
+
 ```bash
 PS > copy .\profile.ps1 $Profile.CurrentUserAllHosts
 ```
