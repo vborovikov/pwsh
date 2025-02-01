@@ -32,6 +32,11 @@ New-Variable SkipTitleNames @(
 
 function Prompt {
     $e = [char]27
+    $s = ' '
+    $s_time = "$e[36m$e[2m$([char]0x221e)$e[22m$e[0m "
+    $s_path = "$e[2m$([char]0x2302)$e[22m "
+    $s_git = "$e[92m$e[2m$([char]0x20bc)$e[22m$e[0m "
+    $s_net = "$e[95m$e[2m$([char]0x2261)$e[22m$e[0m "
 
     # error
     $err = $?
@@ -114,13 +119,13 @@ function Prompt {
     $(if (Test-Path variable:/PSDebugContext) { '[DBG]: ' } else { '' }) +
     'PS ' +
     # date and time
-    "$e[36m$time$e[0m" +
+    $s_time + "$e[36m$time$e[0m" +
     # current path
-    '|' + "$e[37m$path$e[0m" +
+    $s + $s_path + "$e[37m$path$e[0m" +
     # git status
-    $(if ($git.HasStatus) { '|' + $git.ToText() } else { '' }) +
+    $(if ($git.HasStatus) { $s + $s_git + $git.ToText() } else { '' }) +
     # dotnet version
-    $(if ($null -ne $csproj) { '|' + "$e[95m$csproj$e[0m" } else { '' }) +
+    $(if ($null -ne $csproj) { $s + $s_net + "$e[95m$csproj$e[0m" } else { '' }) +
     # prompt level and error state
     "`r`nPS $(if ($err -ne $true) {"$e[91m$promptLevel$e[0m"} else {$promptLevel}) "
 }
