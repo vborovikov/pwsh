@@ -31,27 +31,42 @@ New-Variable SkipTitleNames @(
     'code', 'game') -Option Constant
 
 function Prompt {
+    $err = $?
+
+    # decoration symbols
     $e = [char]27
+    $ps_up = "$e[2m$([char]0x250f)$e[22m"
+    $ps_dn = "$e[2m$([char]0x2517)$e[22m"
+    $ps_cm = "$e[2m$([char]0x2501)$([char]0x25ba)$e[22m"
     $s = ' '
     $s_time = "$e[36m$e[2m$([char]0x221e)$e[22m$e[0m "
     $s_path = "$e[2m$([char]0x2302)$e[22m "
     $s_git = "$e[92m$e[2m$([char]0x20bc)$e[22m$e[0m "
-    $s_net = "$e[95m$e[2m$([char]0x2261)$e[22m$e[0m "
+    $s_fx = "$e[95m$e[2m$([char]0x2261)$e[22m$e[0m "
 
-    # error
-    $err = $?
+    # error check
+    if ($err -ne $true) {
+        $ps_up = "$e[91m$ps_up$e[0m"
+        $ps_dn = "$e[91m$ps_dn$e[0m"
+        $ps_cm = "$e[91m$ps_cm$e[0m"
+    }
+    elseif (Test-Path Variable:/PSDebugContext) {
+        $ps_up = "$e[93m$ps_up$e[0m"
+        $ps_dn = "$e[93m$ps_dn$e[0m"
+        $ps_cm = "$e[93m$ps_cm$e[0m"
+    }
 
-    # time
+    # date and time
     $time = (Get-Date).ToString('dd.MM H:mm')
 
-    # path
+    # current path
     $dir = (Convert-Path .)
     $path = $dir
     if ($path.Contains($Home)) {
         $path = $path.Replace($Home, '~').Replace('\', "$e[2m\$e[22m")
     }
 
-    # title
+    # window title
     $titlePath = $dir
     $title = Split-Path $titlePath -Leaf
     while ($SkipTitleNames -contains $title) {
@@ -73,7 +88,7 @@ function Prompt {
     # git status
     $git = New-Object -TypeName GitStatus
 
-    # dotnet
+    # dotnet version
     $csprojPath = $dir
     $csproj = $null
     do {
@@ -114,20 +129,19 @@ function Prompt {
     }
 
     # prompt
-    $promptLevel = if ($NestedPromptLevel -ge 1) { '>>' } else { '>' }
 
-    $(if (Test-Path variable:/PSDebugContext) { '[DBG]: ' } else { '' }) +
-    'PS ' +
+    # prompt start
+    $ps_up +
     # date and time
-    $s_time + "$e[36m$time$e[0m" +
+    $s + $s_time + "$e[36m$time$e[0m" +
     # current path
     $s + $s_path + "$e[37m$path$e[0m" +
     # git status
     $(if ($git.HasStatus) { $s + $s_git + $git.ToText() } else { '' }) +
     # dotnet version
-    $(if ($null -ne $csproj) { $s + $s_net + "$e[95m$csproj$e[0m" } else { '' }) +
-    # prompt level and error state
-    "`r`nPS $(if ($err -ne $true) {"$e[91m$promptLevel$e[0m"} else {$promptLevel}) "
+    $(if ($null -ne $csproj) { $s + $s_fx + "$e[95m$csproj$e[0m" } else { '' }) +
+    # prompt end
+    "`r`n$ps_dn$ps_cm "
 }
 
 # Git status parser
