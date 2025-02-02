@@ -57,8 +57,8 @@ function Prompt {
     # current path
     $dir = (Convert-Path .)
     $path = $dir
-    if ($path.Contains($Home)) {
-        $path = $path.Replace($Home, '~').Replace('\', "$e[2m\$e[22m")
+    if ($path.Contains($HOME)) {
+        $path = $path.Replace($HOME, '~').Replace('\', "$e[2m\$e[22m")
     }
 
     # window title
@@ -81,49 +81,12 @@ function Prompt {
     }
 
     # git status
-    $git = New-Object -TypeName GitStatus
+    $git = [GitStatus]::new()
 
-    # build toolset
-    $csprojPath = $dir
-    $csproj = $null
-    do {
-        $csproj = Get-ChildItem -Path $csprojPath -Filter '*.csproj' -File -ErrorAction SilentlyContinue
-        if ($csproj -is [IO.FileInfo[]]) {
-            $csproj = $csproj[0]
-            break
-        }
+    # project toolset
+    $tool = [ProjectToolset]::new()
 
-        $csprojPath = Split-Path $csprojPath -Parent
-        if ($csprojPath -eq $Home -or $csprojPath -eq '') {
-            break
-        }
-    } while ($null -eq $csproj)
-    if ($null -ne $csproj) {
-        $csprojPath = $csproj
-        # single target framework
-        $csproj = (Select-Xml -Path $csprojPath -XPath '/Project/PropertyGroup/TargetFramework').Node.InnerText
-        if ($null -ne $csproj) {
-            $csproj = '.' + $csproj
-        }
-        else {
-            # multiple target frameworks
-            $csproj = (Select-Xml -Path $csprojPath -XPath '/Project/PropertyGroup/TargetFrameworks').Node.InnerText
-            if ($null -ne $csproj) {
-                $csproj = '.' + $csproj.Replace(';', "$e[2m;$e[22m.")
-            }
-            else {
-                # old projects
-                $csproj = (Select-Xml -Path $csprojPath `
-                        -XPath '/vs:Project/vs:PropertyGroup[1]/vs:TargetFrameworkVersion' `
-                        -Namespace @{vs = 'http://schemas.microsoft.com/developer/msbuild/2003' }).Node.InnerText
-                if ($null -ne $csproj) {
-                    $csproj = $csproj.Replace('v', '.net')
-                }
-            }
-        }
-    }
-
-    # prompt
+    # prompt construction
 
     # prompt start
     $ps_up +
@@ -133,23 +96,23 @@ function Prompt {
     " $e[37m$e[2m$([char]0x2302)$e[22m $path$e[0m" +
     # git status
     $(if ($git.HasStatus) { " $e[33m$e[2m$([char]0x20bc)$e[22m$e[0m $($git.ToText())" } else { '' }) +
-    # build toolset
-    $(if ($null -ne $csproj) { " $e[95m$e[2m$([char]0x2261)$e[22m $csproj$e[0m" } else { '' }) +
+    # project toolset
+    $(if ($tool.HasProject) { " $e[95m$e[2m$([char]0x2261)$e[22m$e[0m $($tool.ToText())" } else { '' }) +
     # prompt end
     "`r`n$ps_dn$ps_cm "
 }
 
 # Git status parser
 class GitStatus {
-    static [bool]$HasGit = $null -ne (Get-Command -Name 'git' -CommandType Application -ErrorAction SilentlyContinue)
+    static [bool] $HasGit = $null -ne (Get-Command -Name 'git' -CommandType Application -ErrorAction SilentlyContinue)
 
-    [bool]$HasStatus
-    [string]$Branch
-    [bool]$HasChanges 
-    [int]$Modified
-    [int]$Added
-    [int]$Deleted
-    [int]$Untracked
+    [bool] $HasStatus
+    [string] $Branch
+    [bool] $HasChanges 
+    [int] $Modified
+    [int] $Added
+    [int] $Deleted
+    [int] $Untracked
 
     GitStatus() {
         if (-not [GitStatus]::HasGit) {
@@ -186,7 +149,7 @@ class GitStatus {
         }
     }
 
-    [string]ToText() {
+    [string] ToText() {
         if (-not $this.HasStatus) {
             return ''
         }
@@ -204,5 +167,100 @@ class GitStatus {
         }
 
         return "$e[92m$($this.Branch)$e[0m"
+    }
+}
+
+# Project toolset detector
+class ProjectToolset {
+    [bool] $HasProject
+    hidden [Project] $Project
+
+    ProjectToolset() {
+        $this.Project = [ProjectToolset]::Detect()
+        $this.HasProject = $null -ne $this.Project
+    }
+
+    static [Project] Detect() {
+        return [DotnetProject]::TryCreate()
+    }
+
+    [string] ToText() {
+        if (-not $this.HasProject) {
+            return ''
+        }
+
+        $e = [char]27
+        return "$e[95m$($this.Project.GetMoniker())$e[0m"
+    }
+}
+
+class Project {
+    Project() {
+        $type = $this.GetType()
+        if ($type -eq [Project]) {
+            throw("Class $type must be inherited.")
+        }
+    }
+
+    [string] GetMoniker() {
+        throw('Must override GetMoniker() method.')
+    }
+}
+
+class DotnetProject : Project {
+    [string] $Path
+
+    DotnetProject([string] $csproj) : base() {
+        $this.Path = $csproj
+    }
+
+    static [DotnetProject] TryCreate() {
+        $csprojPath = $PWD.Path
+        $csproj = $null
+        do {
+            $csproj = Get-ChildItem -Path $csprojPath -Filter '*.csproj' -File -ErrorAction SilentlyContinue
+            if ($csproj -is [IO.FileInfo[]]) {
+                $csproj = $csproj[0]
+                break
+            }
+    
+            $csprojPath = Split-Path $csprojPath -Parent
+            if ($csprojPath -eq $global:HOME -or $csprojPath -eq '') {
+                break
+            }
+        } while ($null -eq $csproj)
+    
+        if ($null -ne $csproj) {
+            return [DotnetProject]::new($csproj.FullName)
+        }
+
+        return $null
+    }
+
+    [string] GetMoniker() {
+        # single target framework
+        $moniker = (Select-Xml -Path $this.Path -XPath '/Project/PropertyGroup/TargetFramework').Node.InnerText
+        if ($null -ne $moniker) {
+            $moniker = '.' + $moniker
+        }
+        else {
+            # multiple target frameworks
+            $moniker = (Select-Xml -Path $this.Path -XPath '/Project/PropertyGroup/TargetFrameworks').Node.InnerText
+            if ($null -ne $moniker) {
+                $e = [char]27
+                $moniker = '.' + $moniker.Replace(';', "$e[2m;$e[22m.")
+            }
+            else {
+                # old projects
+                $moniker = (Select-Xml -Path $this.Path `
+                        -XPath '/vs:Project/vs:PropertyGroup[1]/vs:TargetFrameworkVersion' `
+                        -Namespace @{vs = 'http://schemas.microsoft.com/developer/msbuild/2003' }).Node.InnerText
+                if ($null -ne $moniker) {
+                    $moniker = $moniker.Replace('v', '.net')
+                }
+            }
+        }
+        
+        return $moniker
     }
 }
