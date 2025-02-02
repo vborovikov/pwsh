@@ -38,11 +38,6 @@ function Prompt {
     $ps_up = "$e[2m$([char]0x250f)$e[22m"
     $ps_dn = "$e[2m$([char]0x2517)$e[22m"
     $ps_cm = "$e[2m$([char]0x2501)$([char]0x25ba)$e[22m"
-    $s = ' '
-    $s_time = "$e[36m$e[2m$([char]0x221e)$e[22m$e[0m "
-    $s_path = "$e[2m$([char]0x2302)$e[22m "
-    $s_git = "$e[92m$e[2m$([char]0x20bc)$e[22m$e[0m "
-    $s_fx = "$e[95m$e[2m$([char]0x2261)$e[22m$e[0m "
 
     # error check
     if ($err -ne $true) {
@@ -88,7 +83,7 @@ function Prompt {
     # git status
     $git = New-Object -TypeName GitStatus
 
-    # dotnet version
+    # build toolset
     $csprojPath = $dir
     $csproj = $null
     do {
@@ -133,19 +128,21 @@ function Prompt {
     # prompt start
     $ps_up +
     # date and time
-    $s + $s_time + "$e[36m$time$e[0m" +
+    " $e[36m$e[2m$([char]0x221e)$e[22m $time$e[0m" +
     # current path
-    $s + $s_path + "$e[37m$path$e[0m" +
+    " $e[37m$e[2m$([char]0x2302)$e[22m $path$e[0m" +
     # git status
-    $(if ($git.HasStatus) { $s + $s_git + $git.ToText() } else { '' }) +
-    # dotnet version
-    $(if ($null -ne $csproj) { $s + $s_fx + "$e[95m$csproj$e[0m" } else { '' }) +
+    $(if ($git.HasStatus) { " $e[33m$e[2m$([char]0x20bc)$e[22m$e[0m $($git.ToText())" } else { '' }) +
+    # build toolset
+    $(if ($null -ne $csproj) { " $e[95m$e[2m$([char]0x2261)$e[22m $csproj$e[0m" } else { '' }) +
     # prompt end
     "`r`n$ps_dn$ps_cm "
 }
 
 # Git status parser
 class GitStatus {
+    static [bool]$HasGit = $null -ne (Get-Command -Name 'git' -CommandType Application -ErrorAction SilentlyContinue)
+
     [bool]$HasStatus
     [string]$Branch
     [bool]$HasChanges 
@@ -155,33 +152,43 @@ class GitStatus {
     [int]$Untracked
 
     GitStatus() {
+        if (-not [GitStatus]::HasGit) {
+            return
+        }
+
         $status = (git status --porcelain 2>&1)
         $this.HasStatus = $status -isnot [Management.Automation.ErrorRecord]
-        if ($this.HasStatus) {
-            $this.Branch = (git branch --show-current 2>&1)
-            $this.HasChanges = $null -ne $status
-            if ($this.HasChanges) {
-                $status | ForEach-Object {
-                    if (($_[0] -eq 'M') -or ($_[1] -eq 'M') -or ($_[0] -eq 'R') -or ($_[1] -eq 'R')) {
-                        $this.Modified += 1
-                    }
-                    elseif (($_[0] -eq 'A') -or ($_[1] -eq 'A')) {
-                        $this.Added += 1
-                    }
-                    elseif (($_[0] -eq 'D') -or ($_[1] -eq 'D')) {
-                        $this.Deleted += 1
-                    }
-                    elseif (($_[0] -eq '?') -or ($_[1] -eq '?')) {
-                        $this.Untracked += 1
-                    }
-                }
+
+        if (-not $this.HasStatus) {
+            return
+        }
+
+        $this.Branch = (git branch --show-current 2>&1)
+        $this.HasChanges = $null -ne $status
+
+        if (-not $this.HasChanges) {
+            return
+        }
+
+        $status | ForEach-Object {
+            if (($_[0] -eq 'M') -or ($_[1] -eq 'M') -or ($_[0] -eq 'R') -or ($_[1] -eq 'R')) {
+                $this.Modified += 1
+            }
+            elseif (($_[0] -eq 'A') -or ($_[1] -eq 'A')) {
+                $this.Added += 1
+            }
+            elseif (($_[0] -eq 'D') -or ($_[1] -eq 'D')) {
+                $this.Deleted += 1
+            }
+            elseif (($_[0] -eq '?') -or ($_[1] -eq '?')) {
+                $this.Untracked += 1
             }
         }
     }
 
     [string]ToText() {
         if (-not $this.HasStatus) {
-            return $null
+            return ''
         }
         $e = [char]27
 
