@@ -108,6 +108,8 @@ class GitStatus {
 
     [bool] $HasStatus
     [string] $Branch
+    [string] $Commit
+    [int] $Number
     [bool] $HasChanges 
     [int] $Modified
     [int] $Added
@@ -126,9 +128,11 @@ class GitStatus {
             return
         }
 
-        $this.Branch = (git branch --show-current 2>&1)
-        $this.HasChanges = $null -ne $status
+        $this.Branch = (git rev-parse --abbrev-ref HEAD 2>&1)
+        $this.Commit = (git log -1 --format=%h 2>&1)
+        $this.Number = (git rev-list --count HEAD 2>&1)
 
+        $this.HasChanges = $null -ne $status
         if (-not $this.HasChanges) {
             return
         }
@@ -163,10 +167,15 @@ class GitStatus {
                 "$e[2m+$e[22m$(if ($this.Added -gt 0) {$this.Added} else {"$e[2m0$e[22m"})" +
                 "$e[2m:$e[22m$(if ($this.Untracked -gt 0) {$this.Untracked} else {"$e[2m0$e[22m"})" +
                 "$e[2m-$e[22m$(if ($this.Deleted -gt 0) {$this.Deleted} else {"$e[2m0$e[22m"})" +
-                "$e[2m]$e[22m$e[0m"
+                "$e[2m]$e[22m$e[0m" +
+                "$e[94m$e[2m@$e[22m$($this.Commit)$e[0m" +
+                "$e[33m$e[2m/$e[22m$($this.Number)$e[0m"
         }
 
-        return "$e[92m$($this.Branch)$e[0m"
+        return `
+            "$e[92m$($this.Branch)$e[0m" +
+            "$e[94m$e[2m@$e[22m$($this.Commit)$e[0m" +
+            "$e[33m$e[2m/$e[22m$($this.Number)$e[0m"
     }
 }
 
