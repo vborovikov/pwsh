@@ -1,19 +1,17 @@
 # PowerShell profile and scripts
 
-Defines a custom prompt function that replaces the `$Home` part of the current path with '~', displays the time, current path, git status, and .NET version in the current project file, and sets the window title to the current folder name. The prompt also displays a different prompt character ('>' or '>>') depending on the current nested prompt level and whether there was an error in the previous command.
+Defines a custom prompt function that replaces the `$Home` part of the current path with '~', displays the time, current path, git status, and the project toolset information (.NET version from the current project file), and sets the window title to the current folder/project name. The prompt also displays whether there was an error in the previous command.
 
 How it might look like:
 
-![Windows Terminal](misc/terminal.png)
-
-![Visual Studio Code](misc/vscode.png)
+![Windows Terminal](misc/pwsh5.png)
 
 ## Installation
 
-The script works for PowerShell v5.1 and higher.
+The profile script supports PowerShell v5.1 and higher.
 
-```bash
-PS > copy .\profile.ps1 $Profile.CurrentUserAllHosts
+```pwsh
+copy .\profile.ps1 $Profile.CurrentUserAllHosts
 ```
 
 ## MyTools.psm1
