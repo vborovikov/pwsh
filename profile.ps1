@@ -35,9 +35,9 @@ function Prompt {
 
     # decoration symbols
     $e = [char]27
-    $ps_up = "$e[2m$([char]0x250f)$e[22m"
-    $ps_dn = "$e[2m$([char]0x2517)$e[22m"
-    $ps_cm = "$e[2m$([char]0x2501)$([char]0x25ba)$e[22m"
+    $ps_up = "$e[2m$([char]0x250c)$e[22m"
+    $ps_dn = "$e[2m$([char]0x2514)$e[22m"
+    $ps_cm = "$e[2m$([char]0x2500)$([char]0x25ba)$e[22m"
 
     # error check
     if ($err -ne $true) {
