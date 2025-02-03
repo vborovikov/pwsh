@@ -11,7 +11,7 @@ How it might look like:
 The profile script supports PowerShell v5.1 and higher.
 
 ```pwsh
-iwr https://github.com/vborovikov/pwsh/raw/refs/heads/main/profile.ps1 -outf $PROFILE.CurrentUserAllHosts
+iwr 'https://github.com/vborovikov/pwsh/raw/refs/heads/main/profile.ps1' -outf $PROFILE.CurrentUserAllHosts
 ```
 
 ## MyTools.psm1
