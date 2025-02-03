@@ -168,14 +168,14 @@ class GitStatus {
                 "$e[2m:$e[22m$(if ($this.Untracked -gt 0) {$this.Untracked} else {"$e[2m0$e[22m"})" +
                 "$e[2m-$e[22m$(if ($this.Deleted -gt 0) {$this.Deleted} else {"$e[2m0$e[22m"})" +
                 "$e[2m]$e[22m$e[0m" +
-                "$e[94m$e[2m@$e[22m$($this.Commit)$e[0m" +
-                "$e[33m$e[2m/$e[22m$($this.Number)$e[0m"
+                "$e[94m$e[2m#$e[22m$($this.Commit)$e[0m" +
+                "$e[33m$e[2m@$e[22m$($this.Number)$e[0m"
         }
 
         return `
             "$e[92m$($this.Branch)$e[0m" +
-            "$e[94m$e[2m@$e[22m$($this.Commit)$e[0m" +
-            "$e[33m$e[2m/$e[22m$($this.Number)$e[0m"
+            "$e[94m$e[2m#$e[22m$($this.Commit)$e[0m" +
+            "$e[33m$e[2m@$e[22m$($this.Number)$e[0m"
     }
 }
 
