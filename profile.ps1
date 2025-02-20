@@ -43,11 +43,13 @@ function Prompt {
     # error check
     if ($err -ne $true) {
         $ps_up = "$e[91m$ps_up$e[0m"
+        $ps_md = "$e[91m$ps_md$e[0m"
         $ps_dn = "$e[91m$ps_dn$e[0m"
         $ps_cm = "$e[91m$ps_cm$e[0m"
     }
     elseif (Test-Path Variable:/PSDebugContext) {
         $ps_up = "$e[93m$ps_up$e[0m"
+        $ps_md = "$e[93m$ps_md$e[0m"
         $ps_dn = "$e[93m$ps_dn$e[0m"
         $ps_cm = "$e[93m$ps_cm$e[0m"
     }
