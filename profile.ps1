@@ -36,6 +36,7 @@ function Prompt {
     # decoration symbols
     $e = [char]27
     $ps_up = "$e[2m$([char]0x250c)$e[22m"
+    $ps_md = "$e[2m$([char]0x2502)$e[22m"
     $ps_dn = "$e[2m$([char]0x2514)$e[22m"
     $ps_cm = "$e[2m$([char]0x2500)$([char]0x25ba)$e[22m"
 
@@ -55,14 +56,16 @@ function Prompt {
     $time = (Get-Date).ToString('dd.MM H:mm')
 
     # current path
-    $dir = (Convert-Path .)
-    $path = $dir
+    $path = $PWD.Path
+    $pathLength = $path.Length
     if ($path.Contains($HOME)) {
-        $path = $path.Replace($HOME, '~').Replace('\', "$e[2m\$e[22m")
+        $path = $path.Replace($HOME, '~')
+        $pathLength = $path.Length
+        $path = $path.Replace('\', "$e[2m\$e[22m")
     }
 
     # window title
-    $titlePath = $dir
+    $titlePath = $PWD.Path
     $title = Split-Path $titlePath -Leaf
     while ($SkipTitleNames -contains $title) {
         # skip this folder name    
@@ -94,6 +97,8 @@ function Prompt {
     " $e[36m$e[2m$([char]0x221e)$e[22m $time$e[0m" +
     # current path
     " $e[37m$e[2m$([char]0x2302)$e[22m $path$e[0m" +
+    # new line if path is too long
+    $(if ($pathLength -gt 80) { "`r`n$ps_md" } else { '' }) +
     # git status
     $(if ($git.HasStatus) { " $e[33m$e[2m$([char]0x20bc)$e[22m$e[0m $($git.ToText())" } else { '' }) +
     # project toolset
