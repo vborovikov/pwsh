@@ -167,20 +167,20 @@ class GitStatus {
         if ($this.HasChanges) {
             return `
                 "$e[91m$($this.Branch)" + 
-                "$e[2m[$e[22m" + 
-                "$e[2m~$e[22m$(if ($this.Modified -gt 0) {$this.Modified} else {"$e[2m0$e[22m"})" + 
-                "$e[2m+$e[22m$(if ($this.Added -gt 0) {$this.Added} else {"$e[2m0$e[22m"})" +
-                "$e[2m:$e[22m$(if ($this.Untracked -gt 0) {$this.Untracked} else {"$e[2m0$e[22m"})" +
-                "$e[2m-$e[22m$(if ($this.Deleted -gt 0) {$this.Deleted} else {"$e[2m0$e[22m"})" +
-                "$e[2m]$e[22m$e[0m" +
-                "$e[94m$e[2m#$e[22m$($this.Commit)$e[0m" +
-                "$e[33m$e[2m;$e[22m$($this.Number)$e[0m"
+            "$e[2m[$e[22m" + 
+            "$e[2m~$e[22m$(if ($this.Modified -gt 0) {$this.Modified} else {"$e[2m0$e[22m"})" + 
+            "$e[2m+$e[22m$(if ($this.Added -gt 0) {$this.Added} else {"$e[2m0$e[22m"})" +
+            "$e[2m:$e[22m$(if ($this.Untracked -gt 0) {$this.Untracked} else {"$e[2m0$e[22m"})" +
+            "$e[2m-$e[22m$(if ($this.Deleted -gt 0) {$this.Deleted} else {"$e[2m0$e[22m"})" +
+            "$e[2m]$e[22m$e[0m" +
+            "$e[94m$e[2m#$e[22m$($this.Commit)$e[0m" +
+            "$e[33m$e[2m;$e[22m$($this.Number)$e[0m"
         }
 
         return `
             "$e[92m$($this.Branch)$e[0m" +
-            "$e[94m$e[2m#$e[22m$($this.Commit)$e[0m" +
-            "$e[33m$e[2m;$e[22m$($this.Number)$e[0m"
+        "$e[94m$e[2m#$e[22m$($this.Commit)$e[0m" +
+        "$e[33m$e[2m;$e[22m$($this.Number)$e[0m"
     }
 }
 
@@ -222,6 +222,8 @@ class Project {
 }
 
 class DotnetProject : Project {
+    hidden static [string] $StubMoniker = '.net'
+
     [string] $Path
 
     DotnetProject([string] $csproj) : base() {
@@ -254,27 +256,32 @@ class DotnetProject : Project {
     [string] GetMoniker() {
         # single target framework
         $moniker = (Select-Xml -Path $this.Path -XPath '/Project/PropertyGroup/TargetFramework').Node.InnerText
-        if ($null -ne $moniker) {
-            $moniker = '.' + $moniker
-        }
-        else {
-            # multiple target frameworks
+
+        # multiple target frameworks
+        if ($null -eq $moniker) {
             $moniker = (Select-Xml -Path $this.Path -XPath '/Project/PropertyGroup/TargetFrameworks').Node.InnerText
+        }
+
+        # old projects
+        if ($null -eq $moniker) {
+            $moniker = (Select-Xml -Path $this.Path `
+                    -XPath '/vs:Project/vs:PropertyGroup[1]/vs:TargetFrameworkVersion' `
+                    -Namespace @{vs = 'http://schemas.microsoft.com/developer/msbuild/2003' }).Node.InnerText
             if ($null -ne $moniker) {
-                $e = [char]27
-                $moniker = '.' + $moniker.Replace(';', "$e[2m;$e[22m.")
-            }
-            else {
-                # old projects
-                $moniker = (Select-Xml -Path $this.Path `
-                        -XPath '/vs:Project/vs:PropertyGroup[1]/vs:TargetFrameworkVersion' `
-                        -Namespace @{vs = 'http://schemas.microsoft.com/developer/msbuild/2003' }).Node.InnerText
-                if ($null -ne $moniker) {
-                    $moniker = $moniker.Replace('v', '.net')
-                }
+                $moniker = $moniker.Replace('v', 'net')
             }
         }
         
+        if ($null -ne $moniker) {
+            if ($moniker.Contains('$')) {
+                $moniker = [DotnetProject]::StubMoniker
+            }
+            else {
+                $e = [char]27
+                $moniker = '.' + $moniker.Replace(';', "$e[2m;$e[22m.")
+            }
+        }
+
         return $moniker
     }
 }
