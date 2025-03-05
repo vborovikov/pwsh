@@ -58,7 +58,7 @@ function Prompt {
     $time = (Get-Date).ToString('dd.MM H:mm')
 
     # current path
-    $path = $PWD.Path
+    $path = $PWD.ProviderPath # important, gets the file system path
     $pathLength = $path.Length
     if ($path.Contains($HOME)) {
         $path = $path.Replace($HOME, '~')
@@ -67,7 +67,7 @@ function Prompt {
     }
 
     # window title
-    $titlePath = $PWD.Path
+    $titlePath = $PWD.ProviderPath
     $title = Split-Path $titlePath -Leaf
     while ($SkipTitleNames -contains $title) {
         # skip this folder name    
@@ -233,7 +233,7 @@ class DotnetProject : Project {
     }
 
     static [DotnetProject] TryCreate() {
-        $csprojPath = $PWD.Path
+        $csprojPath = $PWD.ProviderPath
         $csproj = $null
         do {
             $csproj = Get-ChildItem -Path $csprojPath -Filter '*.csproj' -File -ErrorAction SilentlyContinue
