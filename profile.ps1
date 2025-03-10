@@ -99,8 +99,8 @@ function Prompt {
     " $e[36m$e[2m$([char]0x221e)$e[22m $time$e[0m" +
     # current path
     " $e[37m$e[2m$([char]0x2302)$e[22m $path$e[0m" +
-    # new line if path is too long
-    $(if ($pathLength -gt 80) { "`r`n$ps_md" } else { '' }) +
+    # new line if path is too long for the window width
+    $(if ($pathLength -gt ($Host.UI.RawUI.WindowSize.Width / 2)) { "`r`n$ps_md" } else { '' }) +
     # git status
     $(if ($git.HasStatus) { " $e[33m$e[2m$([char]0x20bc)$e[22m$e[0m $($git.ToText())" } else { '' }) +
     # project toolset
