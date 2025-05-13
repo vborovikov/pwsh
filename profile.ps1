@@ -23,13 +23,7 @@ Set-Alias edit Open-File
 # Prompt
 # Replaces $Home part of the current path with '~'
 # time | path | git | .net
-
-New-Variable PSWindowTitle $Host.UI.RawUI.WindowTitle -Option Constant -ErrorAction SilentlyContinue
-New-Variable SkipTitleNames @(
-    'net10.0', 'net9.0', 'net8.0', 'net7.0', 'net6.0', 
-    'Debug', 'Release', 'bin', 'obj', 'src', 'test', 'build', 
-    'code', 'game') -Option Constant -ErrorAction SilentlyContinue
-
+#
 function Prompt {
     $err = $?
 
@@ -67,23 +61,7 @@ function Prompt {
     }
 
     # window title
-    $titlePath = $PWD.ProviderPath
-    $title = Split-Path $titlePath -Leaf
-    while ($SkipTitleNames -contains $title) {
-        # skip this folder name    
-        $titlePath = Split-Path $titlePath -Parent
-        if ($titlePath.Length -eq 0) {
-            break
-        }
-        $title = Split-Path $titlePath -Leaf
-    }
-    if ($title.Length -gt 15) {
-        $title = $title.Substring(0, 15) + [char]0x2026
-    }
-    if ($title.Length -gt 0) {
-        # set window title
-        $host.UI.RawUI.WindowTitle = $title + " - $PSWindowTitle"
-    }
+    [WindowTitle]::Update()
 
     # git status
     $git = [GitStatus]::new()
@@ -102,11 +80,57 @@ function Prompt {
     # new line if path is too long for the window width
     $(if ($pathLength -gt ($Host.UI.RawUI.WindowSize.Width / 2)) { "`r`n$ps_md" } else { '' }) +
     # git status
-    $(if ($git.HasStatus) { " $e[33m$e[2m$([char]0x20bc)$e[22m$e[0m $($git.ToText())" } else { '' }) +
+    $(if ($git.HasStatus) { " $e[33m$e[2m$([char]0x2211)$e[22m$e[0m $($git.ToText())" } else { '' }) +
     # project toolset
     $(if ($tool.HasProject) { " $e[95m$e[2m$([char]0x2261)$e[22m$e[0m $($tool.ToText())" } else { '' }) +
     # prompt end
     "`r`n$ps_dn$ps_cm "
+}
+
+# Window title resolver
+class WindowTitle {
+    hidden static [string] $PSWindowTitle = $Host.UI.RawUI.WindowTitle
+    hidden static [string[]] $SkipNames = @(
+        '^net\d+\.\d$', 'Debug', 'Release', 'bin', 'obj',
+        'src', 'db', 'test', 'build', 'pkg', 'code', 'game')
+
+    static [void] Update() {
+        $titlePath = $PWD.ProviderPath
+        $title = Split-Path $titlePath -Leaf
+
+        while ([WindowTitle]::CanSkip($title)) {
+            # skip this folder name    
+            $titlePath = Split-Path $titlePath -Parent
+            if ($titlePath.Length -eq 0) {
+                break
+            }
+            $title = Split-Path $titlePath -Leaf
+        }
+        
+        if ($title.Length -gt 15) {
+            $title = $title.Substring(0, 15) + [char]0x2026
+        }
+        if ($title.Length -gt 0) {
+            # set window title
+            $global:Host.UI.RawUI.WindowTitle = $title + " - $([WindowTitle]::PSWindowTitle)"
+        }
+    }
+    
+    static [bool] CanSkip([string] $title)
+    {
+        foreach ($skipName in [WindowTitle]::SkipNames) {
+            if ($skipName.StartsWith('^')) {
+                if ($title -match $skipName) {
+                    return $true
+                }
+            }
+            elseif ($skipName -eq $title) {
+                return $true
+            }
+        }
+
+        return $false
+    }
 }
 
 # Git status parser
