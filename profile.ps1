@@ -80,7 +80,7 @@ function Prompt {
     # new line if path is too long for the window width
     $(if ($pathLength -gt ($Host.UI.RawUI.WindowSize.Width / 2)) { "`r`n$ps_md" } else { '' }) +
     # git status
-    $(if ($git.HasStatus) { " $e[33m$e[2m$([char]0x2211)$e[22m$e[0m $($git.ToText())" } else { '' }) +
+    $(if ($git.HasStatus) { " $e[33m$e[2m$([char]0x028e)$e[22m$e[0m $($git.ToText())" } else { '' }) +
     # project toolset
     $(if ($tool.HasProject) { " $e[95m$e[2m$([char]0x2261)$e[22m$e[0m $($tool.ToText())" } else { '' }) +
     # prompt end
