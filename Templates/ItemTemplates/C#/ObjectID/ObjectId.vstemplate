@@ -1,0 +1,13 @@
+<VSTemplate Version="3.0.0" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" Type="Item">
+  <TemplateData>
+    <DefaultName>ObjectId.cs</DefaultName>
+    <Name>Object ID Struct</Name>
+    <Description>A struct to represent the object ID</Description>
+    <ProjectType>CSharp</ProjectType>
+    <SortOrder>10</SortOrder>
+    <Icon>ObjectId.ico</Icon>
+  </TemplateData>
+  <TemplateContent>
+    <ProjectItem TargetFileName="$fileinputname$.cs" ReplaceParameters="true">ObjectId.cs</ProjectItem>
+  </TemplateContent>
+</VSTemplate>
