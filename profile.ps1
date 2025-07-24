@@ -57,8 +57,8 @@ function Prompt {
     if ($path.Contains($HOME)) {
         $path = $path.Replace($HOME, '~')
         $pathLength = $path.Length
-        $path = $path.Replace('\', "$e[2m\$e[22m")
     }
+    $path = $path.Replace('\', "$e[2m\$e[22m")
 
     # window title
     [WindowTitle]::Update()
