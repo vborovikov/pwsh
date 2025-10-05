@@ -11,12 +11,12 @@ param(
 
 # check if mp3 file exists
 #
-if (-not (Test-Path -LiteralPath $Mp3File)) {
+if (-not (Test-Path -Path $Mp3File)) {
     Write-Error -Message "MP3 file '$Mp3File' does not exist" -Category ObjectNotFound
     exit -1
 }
 else {
-    [FileInfo]$Mp3File = (Resolve-Path -LiteralPath $Mp3File).Path
+    [FileInfo]$Mp3File = (Resolve-Path -Path $Mp3File).Path
 }
 
 # if cue file is not specified, look for corresponding cue file
@@ -28,12 +28,12 @@ if ($null -eq $CueFile) {
         exit -2
     }
 }
-elseif (-not (Test-Path -LiteralPath $CueFile)) {
+elseif (-not (Test-Path -Path $CueFile)) {
     Write-Error -Message "CUE file '$CueFile' does not exist" -Category ObjectNotFound
     exit -3
 }
 else {
-    [FileInfo]$CueFile = (Resolve-Path -LiteralPath $CueFile).Path
+    [FileInfo]$CueFile = (Resolve-Path -Path $CueFile).Path
 }
 
 # check if output directory exists, or create it
@@ -41,9 +41,9 @@ else {
 if ($null -eq $OutputDir) {
     [DirectoryInfo]$OutputDir = Split-Path -LiteralPath $Mp3File -Parent
 }
-elseif (-not (Test-Path -LiteralPath $OutputDir)) {
+elseif (-not (Test-Path -Path $OutputDir)) {
     try {
-        New-Item -ItemType Directory -LiteralPath $OutputDir -ErrorAction Stop | Out-Null
+        New-Item -ItemType Directory -Path $OutputDir -ErrorAction Stop | Out-Null
     }
     catch {
         Write-Error -Message "Could not create output directory '$OutputDir': $($_.Exception.Message)" -Category InvalidOperation
@@ -51,7 +51,7 @@ elseif (-not (Test-Path -LiteralPath $OutputDir)) {
     }
 }
 else {
-    [DirectoryInfo]$OutputDir = (Resolve-Path -LiteralPath $OutputDir).Path
+    [DirectoryInfo]$OutputDir = (Resolve-Path -Path $OutputDir).Path
 }
 
 # check if can run ffmpeg
@@ -122,7 +122,7 @@ try {
                     $frames = [int]$matches[3]
                     # Convert to time in format HH:MM:SS
                     $timeInSec = $minutes * 60 + $seconds + ($frames / 75)
-                    $currentTrack["StartTime"] = "{0:F0}:{1:F0}:{2:F0}" -f [math]::Floor($timeInSec / 3600), [math]::Floor(($timeInSec % 3600) / 60), ($timeInSec % 60)
+                    $currentTrack["StartTime"] = "{0:D2}:{1:D2}:{2:D2}" -f [int][math]::Floor($timeInSec / 3600), [int][math]::Floor(($timeInSec % 3600) / 60), [int][math]::Floor($timeInSec % 60)
                 }
             }
 
@@ -160,7 +160,7 @@ try {
         $outputFileName = "{0:D2} {1} - {2}.mp3" -f $trackNumber, [Regex]::Replace($trackPerformer, '[<>:"/\\|?*]', '_'), [Regex]::Replace($trackTitle, '[<>:"/\\|?*]', '_')
         $outputFilePath = Join-Path $OutputDir $outputFileName
 
-        Write-Host "Extracting track $trackNumber - '$trackTitle' to '$outputFileName'"
+        Write-Host "Extracting track #$trackNumber $trackTitle by $trackPerformer to '$outputFileName'"
 
         # Use ffmpeg to extract the specific track from the full mp3
         $extractArgs = @(
@@ -184,7 +184,7 @@ try {
         $result = & ffmpeg $extractArgs 2>&1
 
         if ($LASTEXITCODE -ne 0) {
-            Write-Warning "Error extracting track ${trackNumber}: $($result -join ' ')"
+            Write-Warning "Error extracting track ${trackNumber}:`n$result"
         }
     }
 
