@@ -96,15 +96,15 @@ class WindowTitle {
 
     static [void] Update() {
         $titlePath = $PWD.ProviderPath
-        $title = Split-Path $titlePath -Leaf
+        $title = Split-Path -Path $titlePath -Leaf
 
         while ([WindowTitle]::CanSkip($title)) {
             # skip this folder name    
-            $titlePath = Split-Path $titlePath -Parent
+            $titlePath = Split-Path -Path $titlePath -Parent
             if ($titlePath.Length -eq 0) {
                 break
             }
-            $title = Split-Path $titlePath -Leaf
+            $title = Split-Path -Path $titlePath -Leaf
         }
         
         if ($title.Length -gt 15) {
@@ -260,13 +260,13 @@ class DotnetProject : Project {
         $csprojPath = $PWD.ProviderPath
         $csproj = $null
         do {
-            $csproj = Get-ChildItem -Path $csprojPath -Filter '*.csproj' -File -ErrorAction SilentlyContinue
+            $csproj = Get-ChildItem -LiteralPath $csprojPath -Filter '*.csproj' -File -ErrorAction SilentlyContinue
             if ($csproj -is [IO.FileInfo[]]) {
                 $csproj = $csproj[0]
                 break
             }
     
-            $csprojPath = Split-Path $csprojPath -Parent
+            $csprojPath = Split-Path -Path $csprojPath -Parent
             if ($csprojPath -eq $global:HOME -or $csprojPath -eq '') {
                 break
             }
@@ -281,16 +281,16 @@ class DotnetProject : Project {
 
     [string] GetMoniker() {
         # single target framework
-        $moniker = (Select-Xml -Path $this.Path -XPath '/Project/PropertyGroup/TargetFramework').Node.InnerText
+        $moniker = (Select-Xml -LiteralPath $this.Path -XPath '/Project/PropertyGroup/TargetFramework').Node.InnerText
 
         # multiple target frameworks
         if ($null -eq $moniker) {
-            $moniker = (Select-Xml -Path $this.Path -XPath '/Project/PropertyGroup/TargetFrameworks').Node.InnerText
+            $moniker = (Select-Xml -LiteralPath $this.Path -XPath '/Project/PropertyGroup/TargetFrameworks').Node.InnerText
         }
 
         # old projects
         if ($null -eq $moniker) {
-            $moniker = (Select-Xml -Path $this.Path `
+            $moniker = (Select-Xml -LiteralPath $this.Path `
                     -XPath '/vs:Project/vs:PropertyGroup[1]/vs:TargetFrameworkVersion' `
                     -Namespace @{vs = 'http://schemas.microsoft.com/developer/msbuild/2003' }).Node.InnerText
             if ($null -ne $moniker) {
