@@ -11,39 +11,39 @@ param(
 
 # check if mp3 file exists
 #
-if (-not (Test-Path -Path $Mp3File)) {
+if (-not (Test-Path -LiteralPath $Mp3File)) {
     Write-Error -Message "MP3 file '$Mp3File' does not exist" -Category ObjectNotFound
     exit -1
 }
 else {
-    [FileInfo]$Mp3File = (Resolve-Path -Path $Mp3File).Path
+    [FileInfo]$Mp3File = (Resolve-Path -LiteralPath $Mp3File).Path
 }
 
 # if cue file is not specified, look for corresponding cue file
 #
 if ($null -eq $CueFile) {
     [FileInfo]$CueFile = [Path]::ChangeExtension($Mp3File.FullName, '.cue')
-    if (-not (Test-Path -Path $CueFile)) {
+    if (-not (Test-Path -LiteralPath $CueFile)) {
         Write-Error -Message "CUE file '$CueFile' does not exist and no CUE file was specified" -Category ObjectNotFound
         exit -2
     }
 }
-elseif (-not (Test-Path -Path $CueFile)) {
+elseif (-not (Test-Path -LiteralPath $CueFile)) {
     Write-Error -Message "CUE file '$CueFile' does not exist" -Category ObjectNotFound
     exit -3
 }
 else {
-    [FileInfo]$CueFile = (Resolve-Path -Path $CueFile).Path
+    [FileInfo]$CueFile = (Resolve-Path -LiteralPath $CueFile).Path
 }
 
 # check if output directory exists, or create it
 #
 if ($null -eq $OutputDir) {
-    [DirectoryInfo]$OutputDir = Split-Path -Path $Mp3File -Parent
+    [DirectoryInfo]$OutputDir = Split-Path -LiteralPath $Mp3File -Parent
 }
-elseif (-not (Test-Path -Path $OutputDir)) {
+elseif (-not (Test-Path -LiteralPath $OutputDir)) {
     try {
-        New-Item -ItemType Directory -Path $OutputDir -ErrorAction Stop | Out-Null
+        New-Item -ItemType Directory -LiteralPath $OutputDir -ErrorAction Stop | Out-Null
     }
     catch {
         Write-Error -Message "Could not create output directory '$OutputDir': $($_.Exception.Message)" -Category InvalidOperation
@@ -51,7 +51,7 @@ elseif (-not (Test-Path -Path $OutputDir)) {
     }
 }
 else {
-    [DirectoryInfo]$OutputDir = (Resolve-Path -Path $OutputDir).Path
+    [DirectoryInfo]$OutputDir = (Resolve-Path -LiteralPath $OutputDir).Path
 }
 
 # check if can run ffmpeg
@@ -66,7 +66,7 @@ Write-Host "Splitting '$Mp3File' using '$CueFile' into '$OutputDir'"
 # this uses the concat demuxer approach with a generated file list from the cue
 try {
     # read the cue file to get track information
-    $cueLines = Get-Content $CueFile.FullName
+    $cueLines = Get-Content -LiteralPath $CueFile.FullName
     $trackCount = 0
 
     foreach ($line in $cueLines) {
