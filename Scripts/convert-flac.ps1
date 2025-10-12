@@ -67,6 +67,7 @@ foreach ($flacFile in $flacFiles) {
 
     Write-Host "Converting '$flacFile' to '$mp3File'"
     $convertArgs = @(
+        '-y',
         # input FLAC
         '-i', $flacFile.FullName
         # MP3 quality
