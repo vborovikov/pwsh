@@ -39,7 +39,7 @@ else {
 # check if output directory exists, or create it
 #
 if ($null -eq $OutputDir) {
-    [DirectoryInfo]$OutputDir = Split-Path -LiteralPath $Mp3File -Parent
+    [DirectoryInfo]$OutputDir = Split-Path -Path $Mp3File -Parent
 }
 elseif (-not (Test-Path -Path $OutputDir)) {
     try {
@@ -84,6 +84,8 @@ try {
     $currentTrack = @{}
     $trackNumber = 1
     $albumTitle = [Path]::ChangeExtension($Mp3File.Name, '')
+    # in case the CUE sheet is for the FLAC file
+    [FileInfo]$FlacFile = [Path]::ChangeExtension($Mp3File.FullName, '.flac')
 
     for ($i = 0; $i -lt $cueLines.Length; $i++) {
         $line = $cueLines[$i].Trim()
@@ -97,7 +99,8 @@ try {
 
         $fileName = $matches[1]
         $fileFormat = $matches[2]
-        if ($fileName -eq $Mp3File.Name -and $fileFormat -eq 'MP3') {
+        if (($fileName -eq $Mp3File.Name -and $fileFormat -eq 'MP3') -or
+            ($fileName -eq $FlacFile.Name -and $fileFormat -eq 'WAVE')) {
             $i++;
 
             for ($j = $i; $j -lt $cueLines.Length; $j++) {
@@ -165,19 +168,21 @@ try {
         # Use ffmpeg to extract the specific track from the full mp3
         $extractArgs = @(
             '-y',
-            '-ss', $startTime,
-            '-to', $endTime,
+            # input MP3
+            '-ss', $startTime, '-to', $endTime,
             '-i', $Mp3File.FullName,
+            # copying
+            '-acodec', 'copy', '-avoid_negative_ts', 'make_zero',
+            # metadata mapping
             '-map_metadata', '0', 
             '-c:v', 'copy', '-disposition:v:0', 'attached_pic',
-            '-acodec', 'copy',
-            '-avoid_negative_ts', 'make_zero',
             '-metadata', "album=$albumTitle",
             '-metadata', "disc=$DiscNumber",
             '-metadata', "track=$trackNumber",
             '-metadata', "title=$trackTitle",
             '-metadata', "artist=$trackPerformer",
-            '-write_id3v1', '1',
+            '-id3v2_version', '3', '-write_id3v1', '1',
+            # output
             $outputFilePath
         )
 
@@ -188,7 +193,7 @@ try {
         }
     }
 
-    Write-Host "Splitting completed. Files saved to: $OutputDir"
+    Write-Host "Splitting completed. Files saved to '$OutputDir'"
 }
 catch {
     Write-Error -Message "Error during splitting: $($_.Exception.Message)" -Category InvalidOperation
