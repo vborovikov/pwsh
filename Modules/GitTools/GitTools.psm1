@@ -227,10 +227,10 @@ function Add-GitWorktree {
         $branchExists = $LASTEXITCODE -eq 0
 
         if ($branchExists) {
-            $output = & git worktree add -- "$worktreePath" "$Branch" 2>&1
+            $output = & git worktree add "$worktreePath" "$Branch" 2>&1
         }
         else {
-            $output = & git worktree add -b "$Branch" -- "$worktreePath" 2>&1
+            $output = & git worktree add -b "$Branch" "$worktreePath" 2>&1
         }
 
         if ($LASTEXITCODE -ne 0) {
