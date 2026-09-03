@@ -223,7 +223,7 @@ function Add-GitWorktree {
         Write-Verbose "Main working directory: $mainRoot"
         Write-Verbose "Worktree path: $worktreePath"
 
-        $null = & git show-ref --verify --quiet "refs/heads/$Branch" 2>$null
+        $null = & git ls-remote --exit-code --heads origin $Branch 2>$null
         $branchExists = $LASTEXITCODE -eq 0
 
         if ($branchExists) {
