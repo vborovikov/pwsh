@@ -297,6 +297,35 @@ class DotnetProject : Project {
                 $moniker = $moniker.Replace('v', 'net')
             }
         }
+
+        # check Directory.Build.props for TargetFramework or TargetFrameworks
+        if ($null -eq $moniker) {
+            $propsDir = Split-Path -Path $this.Path -Parent
+            while ($null -ne $propsDir -and $propsDir -ne $Global:HOME -and $propsDir -ne '') {
+                $propsFile = Join-Path -Path $propsDir -ChildPath 'Directory.Build.props'
+                if (Test-Path -LiteralPath $propsFile) {
+                    $framework = (Select-Xml -LiteralPath $propsFile `
+                        -XPath '/vs:Project/vs:PropertyGroup/vs:TargetFramework' `
+                        -Namespace @{ vs = 'http://schemas.microsoft.com/developer/msbuild/2003' })
+                    if ($null -eq $framework) {
+                        $framework = (Select-Xml -LiteralPath $propsFile `
+                            -XPath '/vs:Project/vs:PropertyGroup/vs:TargetFrameworks' `
+                            -Namespace @{ vs = 'http://schemas.microsoft.com/developer/msbuild/2003' })
+                    }
+
+                    if ($null -ne $framework) {
+                        $moniker = $framework.Node.InnerText
+                        break
+                    }
+                }
+
+                $parentDir = Split-Path -Path $propsDir -Parent
+                if ($parentDir -eq $propsDir) {
+                    break
+                }
+                $propsDir = $parentDir
+            }
+        }
         
         if ($null -ne $moniker) {
             if ($moniker.Contains('$')) {
