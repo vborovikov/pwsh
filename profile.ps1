@@ -116,8 +116,7 @@ class WindowTitle {
         }
     }
     
-    static [bool] CanSkip([string] $title)
-    {
+    static [bool] CanSkip([string] $title) {
         foreach ($skipName in [WindowTitle]::SkipNames) {
             if ($skipName.StartsWith('^')) {
                 if ($title -match $skipName) {
@@ -142,9 +141,12 @@ class GitStatus {
     [string] $Commit
     [int] $Number
     [bool] $HasChanges 
-    [int] $Modified
-    [int] $Added
-    [int] $Deleted
+    [int] $ModifiedStaged
+    [int] $AddedStaged
+    [int] $DeletedStaged
+    [int] $ModifiedUnstaged
+    [int] $AddedUnstaged
+    [int] $DeletedUnstaged
     [int] $Untracked
 
     GitStatus() {
@@ -163,23 +165,26 @@ class GitStatus {
         $this.Commit = (git log -1 --format=%h 2>&1)
         $this.Number = (git rev-list --count HEAD 2>&1)
 
-        $this.HasChanges = $null -ne $status
+        $this.HasChanges = $status.Count -gt 0
         if (-not $this.HasChanges) {
             return
         }
 
-        $status | ForEach-Object {
-            if (($_[0] -eq 'M') -or ($_[1] -eq 'M') -or ($_[0] -eq 'R') -or ($_[1] -eq 'R')) {
-                $this.Modified += 1
+        foreach ($line in $status) {
+            if ($line -eq '??') {
+                $this.Untracked++
             }
-            elseif (($_[0] -eq 'A') -or ($_[1] -eq 'A')) {
-                $this.Added += 1
-            }
-            elseif (($_[0] -eq 'D') -or ($_[1] -eq 'D')) {
-                $this.Deleted += 1
-            }
-            elseif (($_[0] -eq '?') -or ($_[1] -eq '?')) {
-                $this.Untracked += 1
+            else {
+                if ($line[0] -ne ' ') {
+                    if ($line[0] -eq 'M' -or $line[0] -eq 'R') { $this.ModifiedStaged++ }
+                    elseif ($line[0] -eq 'A') { $this.AddedStaged++ }
+                    elseif ($line[0] -eq 'D') { $this.DeletedStaged++ }
+                }
+                if ($line[1] -ne ' ') {
+                    if ($line[1] -eq 'M' -or $line[1] -eq 'R') { $this.ModifiedUnstaged++ }
+                    elseif ($line[1] -eq 'A') { $this.AddedUnstaged++ }
+                    elseif ($line[1] -eq 'D') { $this.DeletedUnstaged++ }
+                }
             }
         }
     }
@@ -188,25 +193,54 @@ class GitStatus {
         if (-not $this.HasStatus) {
             return ''
         }
+
         $e = [char]27
+        $sb = [System.Text.StringBuilder]::new()
 
         if ($this.HasChanges) {
-            return `
-                "$e[91m$($this.Branch)" + 
-            "$e[2m[$e[22m" + 
-            "$e[2m~$e[22m$(if ($this.Modified -gt 0) {$this.Modified} else {"$e[2m0$e[22m"})" + 
-            "$e[2m+$e[22m$(if ($this.Added -gt 0) {$this.Added} else {"$e[2m0$e[22m"})" +
-            "$e[2m:$e[22m$(if ($this.Untracked -gt 0) {$this.Untracked} else {"$e[2m0$e[22m"})" +
-            "$e[2m-$e[22m$(if ($this.Deleted -gt 0) {$this.Deleted} else {"$e[2m0$e[22m"})" +
-            "$e[2m]$e[22m$e[0m" +
-            "$e[94m$e[2m#$e[22m$($this.Commit)$e[0m" +
-            "$e[33m$e[2m;$e[22m$($this.Number)$e[0m"
+            # branch name
+            $sb.Append("$e[91m$($this.Branch)$e[0m")
+
+            # [
+            $sb.Append("$e[91;2m[$e[22;0m")
+
+            # modified
+            $sb.Append("$e[94;2m~$e[22;0m")
+            if ($this.ModifiedStaged -gt 0) { $sb.Append("$e[92m$($this.ModifiedStaged)$e[0m") } else { $sb.Append("$e[92;2m0$e[22;0m") }
+            if ($this.ModifiedUnstaged -gt 0) { $sb.Append("$e[91m$($this.ModifiedUnstaged)$e[0m") } else { $sb.Append("$e[91;2m0$e[22;0m") }
+
+            # added
+            $sb.Append("$e[94;2m+$e[22;0m")
+            if ($this.AddedStaged -gt 0) { $sb.Append("$e[92m$($this.AddedStaged)$e[0m") } else { $sb.Append("$e[92;2m0$e[22;0m") }
+            if ($this.AddedUnstaged -gt 0) { $sb.Append("$e[91m$($this.AddedUnstaged)$e[0m") } else { $sb.Append("$e[91;2m0$e[22;0m") }
+            
+            # deleted
+            $sb.Append("$e[94;2m-$e[22;0m")
+            if ($this.DeletedStaged -gt 0) { $sb.Append("$e[92m$($this.DeletedStaged)$e[0m") } else { $sb.Append("$e[92;2m0$e[22;0m") }
+            if ($this.DeletedUnstaged -gt 0) { $sb.Append("$e[91m$($this.DeletedUnstaged)$e[0m") } else { $sb.Append("$e[91;2m0$e[22;0m") }
+            
+            # untracked
+            $sb.Append("$e[94;2m:$e[22;0m")
+            if ($this.Untracked -gt 0) { $sb.Append("$e[93m$($this.Untracked)$e[0m") } else { $sb.Append("$e[93;2m0$e[22;0m") }
+
+            # ]
+            $sb.Append("$e[91;2m]$e[22;0m")
+
+            # commit hash
+            $sb.Append("$e[94m$e[2m#$e[22m$($this.Commit)$e[0m")
+            # number of commits
+            $sb.Append("$e[33m$e[2m;$e[22m$($this.Number)$e[0m")
+        }
+        else {
+            # branch name
+            $sb.Append("$e[92m$($this.Branch)$e[0m")
+            # commit hash
+            $sb.Append("$e[94m$e[2m#$e[22m$($this.Commit)$e[0m")
+            # number of commits
+            $sb.Append("$e[33m$e[2m;$e[22m$($this.Number)$e[0m")
         }
 
-        return `
-            "$e[92m$($this.Branch)$e[0m" +
-        "$e[94m$e[2m#$e[22m$($this.Commit)$e[0m" +
-        "$e[33m$e[2m;$e[22m$($this.Number)$e[0m"
+        return $sb.ToString()
     }
 }
 
@@ -305,12 +339,12 @@ class DotnetProject : Project {
                 $propsFile = Join-Path -Path $propsDir -ChildPath 'Directory.Build.props'
                 if (Test-Path -LiteralPath $propsFile) {
                     $framework = (Select-Xml -LiteralPath $propsFile `
-                        -XPath '/vs:Project/vs:PropertyGroup/vs:TargetFramework' `
-                        -Namespace @{ vs = 'http://schemas.microsoft.com/developer/msbuild/2003' })
+                            -XPath '/vs:Project/vs:PropertyGroup/vs:TargetFramework' `
+                            -Namespace @{ vs = 'http://schemas.microsoft.com/developer/msbuild/2003' })
                     if ($null -eq $framework) {
                         $framework = (Select-Xml -LiteralPath $propsFile `
-                            -XPath '/vs:Project/vs:PropertyGroup/vs:TargetFrameworks' `
-                            -Namespace @{ vs = 'http://schemas.microsoft.com/developer/msbuild/2003' })
+                                -XPath '/vs:Project/vs:PropertyGroup/vs:TargetFrameworks' `
+                                -Namespace @{ vs = 'http://schemas.microsoft.com/developer/msbuild/2003' })
                     }
 
                     if ($null -ne $framework) {
