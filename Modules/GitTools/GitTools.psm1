@@ -116,6 +116,9 @@ function Add-GitWorktree {
     .PARAMETER Branch
         Branch to check out in the new worktree.
 
+    .PARAMETER Remote
+        Remote to track.
+
     .EXAMPLE
         Add-GitWorktree -Branch feature/login
 
@@ -126,7 +129,8 @@ function Add-GitWorktree {
     param(
         [Parameter(Mandatory, Position = 0, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]
-        [string]$Branch
+        [string]$Branch,
+        [string]$Remote = 'origin'
     )
 
     begin {
@@ -223,13 +227,22 @@ function Add-GitWorktree {
         Write-Verbose "Main working directory: $mainRoot"
         Write-Verbose "Worktree path: $worktreePath"
 
-        $null = & git ls-remote --exit-code --heads origin $Branch 2>$null
+        $null = & git ls-remote --exit-code --heads $Remote $Branch 2>$null
         $branchExists = $LASTEXITCODE -eq 0
 
         if ($branchExists) {
-            $output = & git worktree add "$worktreePath" "$Branch" 2>&1
+            & git show-ref --verify --quiet "refs/heads/$Branch"
+            $localBranchExists = $LASTEXITCODE -eq 0
+            if ($localBranchExists) {
+                # delete the local branch if it already exists, to avoid conflicts
+                $null = & git branch -D "$Branch" 2>$null
+            }
+
+            # create a local branch tracking the remote branch
+            $output = & git worktree add --track -b "$Branch" "$worktreePath" "$Remote/$Branch" 2>&1
         }
         else {
+            # create a new local branch
             $output = & git worktree add -b "$Branch" "$worktreePath" 2>&1
         }
 
