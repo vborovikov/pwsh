@@ -171,7 +171,7 @@ class GitStatus {
         }
 
         foreach ($line in $status) {
-            if ($line -eq '??') {
+            if ($line.StartsWith('??')) {
                 $this.Untracked++
             }
             else {
